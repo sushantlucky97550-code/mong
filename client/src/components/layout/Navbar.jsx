@@ -62,14 +62,14 @@ const Navbar = ({ onToggleSidebar }) => {
       </div>
 
       <div className="flex items-center gap-3 md:gap-5">
-        {/* Quick Demo Role Switcher */}
+        {/* Role Switcher Pill */}
         <div className="relative">
           <button
             onClick={() => setShowRoleMenu(!showRoleMenu)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors border border-indigo-100"
-            title="Switch demo persona"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors border border-indigo-100 cursor-pointer"
+            title="Switch Persona"
           >
-            <span>Switch Role:</span>
+            <span>Role:</span>
             <span className="capitalize font-bold">{user?.role}</span>
             <ChevronDown className="w-3 h-3" />
           </button>
@@ -84,7 +84,7 @@ const Navbar = ({ onToggleSidebar }) => {
                   setShowRoleMenu(false);
                   await quickLogin('hr');
                 }}
-                className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-50 transition-colors ${
+                className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer ${
                   user?.role === 'hr' ? 'bg-indigo-50/50 text-indigo-700 font-semibold' : 'text-slate-700'
                 }`}
               >
@@ -96,7 +96,7 @@ const Navbar = ({ onToggleSidebar }) => {
                   setShowRoleMenu(false);
                   await quickLogin('manager');
                 }}
-                className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-50 transition-colors ${
+                className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer ${
                   user?.role === 'manager' ? 'bg-indigo-50/50 text-indigo-700 font-semibold' : 'text-slate-700'
                 }`}
               >
@@ -108,7 +108,7 @@ const Navbar = ({ onToggleSidebar }) => {
                   setShowRoleMenu(false);
                   await quickLogin('employee');
                 }}
-                className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-50 transition-colors ${
+                className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer ${
                   user?.role === 'employee' ? 'bg-indigo-50/50 text-indigo-700 font-semibold' : 'text-slate-700'
                 }`}
               >
@@ -137,15 +137,6 @@ const Navbar = ({ onToggleSidebar }) => {
             <p className="text-xs text-slate-500 mt-0.5">{user?.position || user?.department}</p>
           </div>
         </div>
-
-        {/* Logout Button */}
-        <button
-          onClick={logout}
-          className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
-          title="Sign out"
-        >
-          <LogOut className="w-5 h-5" />
-        </button>
       </div>
     </header>
   );

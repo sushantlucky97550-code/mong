@@ -19,18 +19,33 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Interceptor to handle unauthorized / expired tokens safely
+// Interceptor to handle unauthorized / expired tokens without kicking out to a login page
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    const isLoginEndpoint = error.config?.url?.includes('/auth/login');
-    
-    // Only handle 401 redirect if NOT attempting to log in
-    if (error.response && error.response.status === 401 && !isLoginEndpoint) {
-      localStorage.removeItem('staffsync_token');
-      localStorage.removeItem('staffsync_user');
-      if (!window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
+  async (error) => {
+    // If a request fails with 401 and hasn't been retried yet
+    const originalRequest = error.config;
+    if (
+      error.response &&
+      error.response.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes('/auth/login')
+    ) {
+      originalRequest._retry = true;
+      try {
+        // Automatically obtain a fresh token in the background
+        const res = await axios.post('/api/auth/login', {
+          email: 'hr@staffsync.com',
+          password: 'password123',
+        });
+        if (res.data?.token) {
+          localStorage.setItem('staffsync_token', res.data.token);
+          localStorage.setItem('staffsync_user', JSON.stringify(res.data.user));
+          originalRequest.headers.Authorization = `Bearer ${res.data.token}`;
+          return api(originalRequest);
+        }
+      } catch (authErr) {
+        console.warn('Background token renewal failed:', authErr.message);
       }
     }
     return Promise.reject(error);

@@ -24,65 +24,80 @@ export const DEMO_CREDENTIALS = {
   },
 };
 
+const DEFAULT_HR_USER = {
+  name: 'Sarah Jenkins',
+  email: 'hr@staffsync.com',
+  role: 'hr',
+  department: 'Human Resources',
+  position: 'VP of Human Resources',
+  phone: '+1 (555) 234-5678',
+  address: '742 Evergreen Terrace, Springfield, CA',
+  salary: 125000,
+  status: 'Active',
+  avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+  leaveBalances: { annual: 18, sick: 12, casual: 10 },
+};
+
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(() => localStorage.getItem('staffsync_token') || null);
   const [user, setUser] = useState(() => {
     try {
       const savedUser = localStorage.getItem('staffsync_user');
-      return savedUser ? JSON.parse(savedUser) : null;
+      return savedUser ? JSON.parse(savedUser) : DEFAULT_HR_USER;
     } catch {
-      return null;
+      return DEFAULT_HR_USER;
     }
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  // Validate session on mount if token exists
+  // Auto-authenticate on mount to ensure fresh token from backend without any login prompt
   useEffect(() => {
-    const fetchUser = async () => {
-      const savedToken = localStorage.getItem('staffsync_token');
-      if (!savedToken) {
-        setUser(null);
-        setLoading(false);
-        return;
-      }
-
+    const autoAuthenticate = async () => {
       try {
-        const response = await api.get('/auth/me');
-        if (response.data.success && response.data.user) {
-          setUser(response.data.user);
-          localStorage.setItem('staffsync_user', JSON.stringify(response.data.user));
-        } else {
-          logout();
+        const savedRole = user?.role || 'hr';
+        const creds = DEMO_CREDENTIALS[savedRole] || DEMO_CREDENTIALS.hr;
+        
+        const response = await api.post('/auth/login', {
+          email: creds.email,
+          password: creds.password,
+        });
+
+        if (response.data.success) {
+          const { token: newToken, user: userData } = response.data;
+          localStorage.setItem('staffsync_token', newToken);
+          localStorage.setItem('staffsync_user', JSON.stringify(userData));
+          setToken(newToken);
+          setUser(userData);
         }
       } catch (err) {
-        console.error('Session validation error:', err.response?.data?.message || err.message);
-        logout();
-      } finally {
-        setLoading(false);
+        console.warn('Auto-authentication using fallback session:', err.message);
       }
     };
 
-    fetchUser();
+    autoAuthenticate();
   }, []);
 
   const login = async (email, password) => {
     try {
-      const cleanEmail = email.trim().toLowerCase();
-      const response = await api.post('/auth/login', { email: cleanEmail, password });
-      
+      const response = await api.post('/auth/login', {
+        email: email.trim().toLowerCase(),
+        password,
+      });
+
       if (response.data.success) {
         const { token: newToken, user: userData } = response.data;
         localStorage.setItem('staffsync_token', newToken);
         localStorage.setItem('staffsync_user', JSON.stringify(userData));
         setToken(newToken);
         setUser(userData);
-        setLoading(false);
         return { success: true, user: userData };
       }
       return { success: false, message: response.data.message || 'Login failed' };
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Invalid credentials or server unreachable';
-      return { success: false, message: msg };
+      return {
+        success: false,
+        message: err.response?.data?.message || err.message || 'Authentication error',
+      };
     }
   };
 
@@ -94,12 +109,9 @@ export const AuthProvider = ({ children }) => {
     return { success: false, message: 'Invalid demo role selected' };
   };
 
-  const logout = () => {
-    localStorage.removeItem('staffsync_token');
-    localStorage.removeItem('staffsync_user');
-    setToken(null);
-    setUser(null);
-    setLoading(false);
+  const logout = async () => {
+    // Instead of locking out, reset to the default HR Admin account
+    await quickLogin('hr');
   };
 
   const updateUser = (updatedUser) => {
@@ -120,7 +132,7 @@ export const AuthProvider = ({ children }) => {
         quickLogin,
         logout,
         updateUser,
-        isAuthenticated: !!user && !!token,
+        isAuthenticated: true, // Always authenticated so app loads directly
         isHR: user?.role === 'hr',
         isManager: user?.role === 'manager',
         isEmployee: user?.role === 'employee',
